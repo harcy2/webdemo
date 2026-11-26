@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo Interaktif Transformasi Fourier</title>
+<style>
+:root{--bg:#fff;--card:#eaf2f5;--ink:#1b1f2a;--head:#0b2a3c;--muted:#5b6b7a;--c1:#0e7c86;--c2:#d98a12;--c3:#2e5e8c;--red:#d9534f;--grid:#c9d6dd;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1a24;--card:#12303f;--ink:#e6eef2;--head:#fff;--muted:#9fb3c0;--c1:#4fc3cc;--c2:#f2a33a;--c3:#8fb6e0;--red:#ff7a75;--grid:#2a4656;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1a24;--card:#12303f;--ink:#e6eef2;--head:#fff;--muted:#9fb3c0;--c1:#4fc3cc;--c2:#f2a33a;--c3:#8fb6e0;--red:#ff7a75;--grid:#2a4656;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Calibri,Arial,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:24px 18px 48px}
+h1{font:700 clamp(26px,5vw,38px)/1.2 Cambria,Georgia,serif;color:var(--head);margin:0 0 6px}
+h2{font:700 24px/1.3 Cambria,Georgia,serif;color:var(--head);margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 18px}
+nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px}
+nav a{white-space:nowrap;padding:8px 14px;border-radius:999px;background:var(--card);color:var(--head);text-decoration:none;font-weight:600;font-size:15px}
+nav a[aria-current="true"]{background:var(--c1);color:#fff}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border-radius:14px;padding:16px;margin:14px 0}
+.card h3{margin:0 0 8px;font-size:16px;color:var(--head)}
+canvas{width:100%;display:block}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:10px 0}
+.ctl label{display:flex;align-items:center;gap:8px;font-size:15px}
+input[type=range]{width:160px;accent-color:var(--c1)}
+output{min-width:2.2em;font-weight:700;color:var(--head)}
+button,select{font:inherit;padding:6px 12px;border-radius:8px;border:1px solid var(--grid);background:var(--bg);color:var(--ink);cursor:pointer}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.note{color:var(--muted);font-size:14px;margin:6px 0 0}
+.mono{font-family:Consolas,"Courier New",monospace;font-size:15px;word-break:break-all}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700;color:#fff}
+.ok{background:var(--c1)}.warn{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Demo Interaktif Transformasi Fourier</h1>
+<p class="sub">Geser slider dan lihat sendiri bagaimana sinyal diurai menjadi frekuensi. Semua data di halaman ini adalah ilustrasi sintetis, bukan data nyata.</p>
+<nav id="nav">
+<a href="#dasar">Dasar</a><a href="#audio">Audio</a><a href="#gambar">Gambar</a><a href="#ofdm">Wi-Fi / 5G</a><a href="#ekg">EKG</a><a href="#getaran">Getaran</a>
+</nav>
+
+<section id="t-dasar">
+<h2>Dasar: gabungan gelombang menjadi satu sinyal</h2>
+<p class="sub">Atur tiga gelombang sinus. Sinyal gabungan tampak rumit, tetapi Transformasi Fourier langsung mengembalikan kekuatan tiap frekuensinya.</p>
+<div class="card"><h3>Sinyal gabungan (domain waktu)</h3><canvas id="d1" data-r="0.3"></canvas></div>
+<div class="card"><h3>Spektrum frekuensi (hasil Transformasi Fourier)</h3><canvas id="d2" data-r="0.32"></canvas>
+<div class="ctl">
+<label>Frekuensi 2 <input type="range" id="a1" min="0" max="1" step="0.05" value="0.8"><output></output></label>
+<label>Frekuensi 5 <input type="range" id="a2" min="0" max="1" step="0.05" value="0.5"><output></output></label>
+<label>Frekuensi 11 <input type="range" id="a3" min="0" max="1" step="0.05" value="0.3"><output></output></label></div>
+<p class="note">Sumbu horizontal: frekuensi (jumlah siklus per satuan waktu). Tinggi batang: amplitudo.</p></div>
+</section>
+
+<section id="t-audio">
+<h2>Audio: kompresi dan peredam bising</h2>
+<p class="sub">Frekuensi yang dibuang dari spektrum akan hilang dari suara hasil. Itulah dasar kompresi dan peredam bising.</p>
+<div class="card"><h3>Suara asli</h3><canvas id="u1" data-r="0.26"></canvas></div>
+<div class="card"><h3>Spektrum (abu-abu = dibuang)</h3><canvas id="u2" data-r="0.3"></canvas>
+<div class="ctl">
+<label>Buang frekuensi di atas <input type="range" id="cut" min="6" max="40" step="1" value="40"><output></output></label>
+<label><input type="checkbox" id="hum" checked> Ada dengung (frekuensi 3)</label>
+<label><input type="checkbox" id="nc"> Peredam bising aktif</label></div>
+<p class="note" id="audioInfo"></p></div>
+<div class="card"><h3>Suara hasil (setelah Fourier terbalik)</h3><canvas id="u3" data-r="0.26"></canvas></div>
+</section>
+
+<section id="t-gambar">
+<h2>Gambar: kompresi ala JPEG</h2>
+<p class="sub">Satu blok 8×8 piksel diubah dengan DCT (turunan Transformasi Fourier). Hanya koefisien frekuensi rendah yang disimpan, lalu blok dibangun ulang.</p>
+<div class="card"><div class="grid3">
+<div><h3>Blok asli</h3><canvas id="g1" data-r="1"></canvas></div>
+<div><h3>Koefisien DCT</h3><canvas id="g2" data-r="1"></canvas></div>
+<div><h3>Blok hasil</h3><canvas id="g3" data-r="1"></canvas></div></div>
+<div class="ctl"><label>Frekuensi dipertahankan <input type="range" id="gk" min="1" max="15" step="1" value="5"><output></output></label></div>
+<p class="note" id="gInfo"></p>
+<p class="note">Pojok kiri atas = frekuensi rendah. Sel terang = koefisien dipertahankan, sel kosong = dibuang.</p></div>
+</section>
+
+<section id="t-ofdm">
+<h2>Wi-Fi, 4G, dan 5G: OFDM</h2>
+<p class="sub">Satu saluran dibagi menjadi banyak sub-frekuensi. Puncak tiap sub-frekuensi jatuh tepat di titik nol yang lain, sehingga tidak saling mengganggu (orthogonal).</p>
+<div class="card"><h3>Sub-frekuensi dalam satu saluran</h3><canvas id="o1" data-r="0.3"></canvas>
+<div class="ctl"><label>Jumlah sub-frekuensi <input type="range" id="on" min="2" max="16" step="1" value="8"><output></output></label>
+<button id="ob">Data acak baru</button></div></div>
+<div class="card"><h3>Sinyal yang dikirim (gabungan semua sub-frekuensi)</h3><canvas id="o2" data-r="0.28"></canvas>
+<p class="note">Data dikirim (+ atau −):</p><div class="mono" id="osent"></div>
+<p class="note">Data hasil FFT di penerima:</p><div class="mono" id="orec"></div></div>
+</section>
+
+<section id="t-ekg">
+<h2>EKG: ritme jantung dalam frekuensi</h2>
+<p class="sub">Bandingkan sinyal EKG sintetis yang teratur dan tidak teratur. Spektrum frekuensinya memperlihatkan perbedaannya.</p>
+<div class="card"><div class="ctl"><label>Ritme <select id="em"><option value="n">Teratur</option><option value="i">Tidak teratur</option></select></label></div>
+<h3>Sinyal EKG sintetis (8 detik)</h3><canvas id="e1" data-r="0.28"></canvas>
+<h3 style="margin-top:12px">Spektrum 0–15 Hz</h3><canvas id="e2" data-r="0.3"></canvas>
+<p class="note" id="eInfo"></p></div>
+</section>
+
+<section id="t-getaran">
+<h2>Getaran: deteksi kerusakan dini</h2>
+<p class="sub">Mesin sehat punya pola frekuensi getaran yang stabil. Naikkan tingkat kerusakan dan perhatikan puncak baru yang muncul.</p>
+<div class="card"><h3>Getaran (domain waktu)</h3><canvas id="v1" data-r="0.26"></canvas></div>
+<div class="card"><h3>Spektrum getaran (Hz)</h3><canvas id="v2" data-r="0.32"></canvas>
+<div class="ctl"><label>Tingkat kerusakan <input type="range" id="vd" min="0" max="100" step="1" value="0"><output></output></label>
+<span id="vs" class="badge ok">Normal</span></div>
+<p class="note">Garis putus-putus: batas peringatan amplitudo.</p></div>
+</section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TAU=2*Math.PI;
+function setup(c){const d=window.devicePixelRatio||1,w=c.clientWidth,h=Math.round(w*parseFloat(c.dataset.r));c.width=w*d;c.height=h*d;c.style.height=h+"px";const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,h);return{x,w,h}}
+function plot(c,ys,max,color){const{x,w,h}=setup(c);x.strokeStyle=css("--grid");x.lineWidth=1;x.beginPath();x.moveTo(0,h/2);x.lineTo(w,h/2);x.stroke();x.strokeStyle=color;x.lineWidth=2;x.lineJoin="round";x.beginPath();ys.forEach((v,i)=>{const px=i/(ys.length-1)*w,py=h/2-v/max*(h/2-6);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()}
+function bars(c,vals,max,colorFn,o={}){const{x,w,h}=setup(c);const pb=o.labels?18:4,pt=6,bw=w/vals.length;x.fillStyle=css("--muted");x.font="11px Calibri,Arial,sans-serif";x.textAlign="center";
+vals.forEach((v,i)=>{const bh=Math.min(v/max,1)*(h-pb-pt);x.fillStyle=colorFn(i);x.fillRect(i*bw+bw*0.15,h-pb-bh,bw*0.7,bh);if(o.labels&&i%(o.step||1)===0){x.fillStyle=css("--muted");x.fillText(o.labels(i),i*bw+bw/2,h-4)}});
+if(o.line!=null){const ly=h-pb-o.line/max*(h-pb-pt);x.strokeStyle=css("--red");x.lineWidth=1.5;x.setLineDash([6,4]);x.beginPath();x.moveTo(0,ly);x.lineTo(w,ly);x.stroke();x.setLineDash([])}}
+function dft(s,K){const N=s.length,re=new Float64Array(K),im=new Float64Array(K);for(let k=1;k<K;k++){let a=0,b=0;for(let n=0;n<N;n++){const t=TAU*k*n/N;a+=s[n]*Math.cos(t);b-=s[n]*Math.sin(t)}re[k]=a;im[k]=b}return{re,im,mag:k=>Math.hypot(re[k],im[k])*2/N}}
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+const sig=(N,f)=>Array.from({length:N},(_,n)=>f(n/N,n));
+
+/* Dasar */
+function rDasar(){const A=[+$("a1").value,+$("a2").value,+$("a3").value],F=[2,5,11],N=256;
+const s=sig(N,t=>A.reduce((a,v,i)=>a+v*Math.sin(TAU*F[i]*t),0));
+plot($("d1"),s,2,css("--c3"));const d=dft(s,17);
+bars($("d2"),Array.from({length:16},(_,i)=>d.mag(i+1)),1,i=>F.includes(i+1)?css("--c2"):css("--c1"),{labels:i=>i+1})}
+
+/* Audio */
+function rAudio(){const N=256,F=[2,5,9,16,24,32],A=[.7,.6,.45,.3,.2,.12],hum=$("hum").checked,nc=$("nc").checked,cut=+$("cut").value;
+const s=sig(N,t=>F.reduce((a,f,i)=>a+A[i]*Math.sin(TAU*f*t),0)+(hum?.6*Math.sin(TAU*3*t):0));
+plot($("u1"),s,2,css("--c3"));const d=dft(s,41);
+const kept=k=>k<=cut&&!(nc&&k===3);
+bars($("u2"),Array.from({length:40},(_,i)=>d.mag(i+1)),.9,i=>{const k=i+1;return !kept(k)?css("--grid"):(k===3&&hum?css("--red"):css("--c1"))},{labels:i=>i+1,step:2});
+const out=sig(N,(t,n)=>{let a=0;for(let k=1;k<41;k++)if(kept(k)){const th=TAU*k*n/N;a+=(2/N)*(d.re[k]*Math.cos(th)-d.im[k]*Math.sin(th))}return a});
+plot($("u3"),out,2,css("--c1"));
+let tot=0,kp=0;for(let k=1;k<41;k++)if(d.mag(k)>.02){tot++;if(kept(k))kp++}
+$("audioInfo").textContent="Komponen frekuensi dipertahankan: "+kp+" dari "+tot+(hum?". Batang merah = dengung yang bisa diredam.":".")}
+
+/* Gambar */
+const P=[];for(let y=0;y<8;y++){P[y]=[];for(let x=0;x<8;x++)P[y][x]=Math.max(0,Math.min(255,40+12*x+8*y+(x+y>8?70:0)+((x*7+y*13)%5)*6))}
+const al=u=>u?Math.sqrt(2/8):Math.sqrt(1/8);
+function dct2(p){const C=[];for(let u=0;u<8;u++){C[u]=[];for(let v=0;v<8;v++){let s=0;for(let y=0;y<8;y++)for(let x=0;x<8;x++)s+=(p[y][x]-128)*Math.cos((2*x+1)*v*Math.PI/16)*Math.cos((2*y+1)*u*Math.PI/16);C[u][v]=al(u)*al(v)*s}}return C}
+function idct2(C){const p=[];for(let y=0;y<8;y++){p[y]=[];for(let x=0;x<8;x++){let s=0;for(let u=0;u<8;u++)for(let v=0;v<8;v++)s+=al(u)*al(v)*C[u][v]*Math.cos((2*x+1)*v*Math.PI/16)*Math.cos((2*y+1)*u*Math.PI/16);p[y][x]=Math.max(0,Math.min(255,s+128))}}return p}
+function drawBlock(c,p){const{x,w}=setup(c),cs=w/8;p.forEach((r,y)=>r.forEach((v,xx)=>{x.fillStyle="rgb("+v+","+v+","+v+")";x.fillRect(xx*cs,y*cs,cs+.5,cs+.5)}))}
+function rGambar(){const K=+$("gk").value,C=dct2(P),keep=(u,v)=>u+v<K;
+drawBlock($("g1"),P);const{x,w}=setup($("g2")),cs=w/8;let mx=0;C.forEach(r=>r.forEach(v=>mx=Math.max(mx,Math.abs(v))));
+const c1=css("--c1");C.forEach((r,u)=>r.forEach((v,vv)=>{x.fillStyle=css("--bg");x.fillRect(vv*cs,u*cs,cs,cs);if(keep(u,vv)){x.globalAlpha=.25+.75*Math.log(1+Math.abs(v))/Math.log(1+mx);x.fillStyle=c1;x.fillRect(vv*cs+1,u*cs+1,cs-2,cs-2);x.globalAlpha=1}else{x.strokeStyle=css("--grid");x.strokeRect(vv*cs+1.5,u*cs+1.5,cs-3,cs-3)}}));
+drawBlock($("g3"),idct2(C.map((r,u)=>r.map((v,vv)=>keep(u,vv)?v:0))));
+let n=0;for(let u=0;u<8;u++)for(let v=0;v<8;v++)if(keep(u,v))n++;
+$("gInfo").textContent="Koefisien disimpan: "+n+" dari 64 ("+Math.round(n/64*100)+"%)."}
+
+/* OFDM */
+let od=[];
+function newData(){od=Array.from({length:16},()=>Math.random()<.5?-1:1)}newData();
+function rOfdm(){const n=+$("on").value,N=256;const{x,w,h}=setup($("o1"));const fmax=n+1;
+x.strokeStyle=css("--grid");x.beginPath();x.moveTo(0,h-14);x.lineTo(w,h-14);x.stroke();
+for(let k=1;k<=n;k++){x.strokeStyle="hsl("+(k*360/n)+",65%,52%)";x.lineWidth=2;x.beginPath();for(let i=0;i<=400;i++){const f=i/400*fmax,u=f-k,sv=Math.abs(u)<1e-9?1:Math.abs(Math.sin(Math.PI*u)/(Math.PI*u));const px=i/400*w,py=h-14-sv*(h-26);i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke()}
+x.fillStyle=css("--muted");x.font="11px Calibri,Arial,sans-serif";x.textAlign="center";for(let k=1;k<=n;k++)x.fillText(k,k/fmax*w,h-2);
+const d=od.slice(0,n),s=sig(N,t=>d.reduce((a,v,i)=>a+v*Math.cos(TAU*(i+1)*t),0));
+plot($("o2"),s.map(v=>v/n),1.05,css("--c2"));const rec=Array.from({length:n},(_,i)=>{let a=0;for(let m=0;m<N;m++)a+=s[m]*Math.cos(TAU*(i+1)*m/N);return(2/N*a)>0?"+":"−"});
+$("osent").textContent=d.map(v=>v>0?"+":"−").join(" ");$("orec").textContent=rec.join(" ")}
+
+/* EKG */
+let ecg=null,ecgMode="";
+function mkEcg(mode){const fs=128,T=8,N=fs*T,r=rng(mode==="n"?7:21),beats=[];let t=.4;while(t<T){beats.push(t);t+=mode==="n"?.8:.45+r()*.75}
+const g=(x,m,sd)=>Math.exp(-((x-m)**2)/(2*sd*sd));
+return Array.from({length:N},(_,n)=>{const tt=n/fs;let v=0;for(const b of beats){const dx=tt-b;if(Math.abs(dx)<.5)v+=.12*g(dx,-.2,.04)-.1*g(dx,-.04,.012)+g(dx,0,.015)-.2*g(dx,.04,.012)+.3*g(dx,.25,.06)}return v+(r()-.5)*.03})}
+function rEkg(){const m=$("em").value;if(ecgMode!==m){ecg=mkEcg(m);ecgMode=m}
+plot($("e1"),ecg,1.2,css("--red"));const d=dft(ecg,121),v=Array.from({length:120},(_,i)=>d.mag(i+1));
+const mx=Math.max(...v);
+const sel=m==="n"?v.slice(5,16).indexOf(Math.max(...v.slice(5,16)))+6:-1;
+bars($("e2"),v,Math.max(mx,.01),i=>(i+1===sel?css("--c2"):css("--c1")),{labels:i=>((i+1)/8).toFixed(0),step:8});
+$("eInfo").textContent=m==="n"?"Puncak dasar sekitar "+(sel/8).toFixed(2)+" Hz, setara kira-kira "+Math.round(sel/8*60)+" denyut per menit. Puncak berikutnya adalah kelipatannya (harmonik).":"Interval antardenyut berubah-ubah, sehingga energi menyebar dan tidak ada puncak ritme yang tajam."}
+
+/* Getaran */
+const vnoise=(()=>{const r=rng(5);return Array.from({length:512},()=>(r()-.5)*.2)})();
+function rGetar(){const d=+$("vd").value/100*.8,fs=512,N=512;
+const s=sig(N,(t,n)=>Math.sin(TAU*25*t)+.4*Math.sin(TAU*50*t)+d*Math.sin(TAU*37*t)+vnoise[n]);
+plot($("v1"),s.slice(0,128),2.2,css("--c3"));const D=dft(s,81),v=Array.from({length:80},(_,i)=>D.mag(i+1)),TH=.15;
+bars($("v2"),v,1.2,i=>(i+1===37&&v[i]>TH?css("--red"):css("--c1")),{labels:i=>i+1,step:5,line:TH});
+const b=$("vs"),bad=v[36]>TH;b.className="badge "+(bad?"warn":"ok");b.textContent=bad?"Peringatan: puncak baru di 37 Hz":"Normal"}
+
+const R={dasar:rDasar,audio:rAudio,gambar:rGambar,ofdm:rOfdm,ekg:rEkg,getaran:rGetar};
+let cur="dasar";
+function render(){document.querySelectorAll("input[type=range]").forEach(i=>{const o=i.parentElement.querySelector("output");if(o)o.textContent=i.value});R[cur]()}
+function show(){const h=location.hash.slice(1);cur=R[h]?h:"dasar";document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="t-"+cur));
+document.querySelectorAll("nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+cur));render()}
+document.addEventListener("input",render);document.addEventListener("change",render);
+$("ob").addEventListener("click",()=>{newData();render()});
+window.addEventListener("hashchange",show);window.addEventListener("resize",render);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
+show();
+</script>
+</body>
+</html>
